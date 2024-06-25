@@ -1,7 +1,7 @@
 import argparse
-from parser.parsing import load_manifest
 
-from database.db import create_db, insert_manifest_data, query_db
+from database import create_db, insert_manifest_data, query_db
+from dbt_parser import load_manifest
 
 
 def main():

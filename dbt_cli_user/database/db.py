@@ -1,5 +1,6 @@
 import sqlite3
-from parser.parsing import Manifest
+
+from dbt_parser import Manifest
 
 
 def create_db():
