@@ -4,11 +4,21 @@ import sqlite3
 def create_db():
     conn = sqlite3.connect("dbt_manifest.db")
     c = conn.cursor()
+
+    c.execute(
+        """CREATE TABLE IF NOT EXISTS project (
+            project_name TEXT PRIMARY KEY
+        )
+    """
+    )
+
     c.execute(
         """CREATE TABLE IF NOT EXISTS node (
             id TEXT PRIMARY KEY,
             name TEXT,
-            resource_type TEXT
+            resource_type TEXT,
+            project_name TEXT,
+            FOREIGN KEY(project_name) REFERENCES project(project_name)
         )
     """
     )
