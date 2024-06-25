@@ -1,4 +1,5 @@
 import sqlite3
+from parser.parsing import Manifest
 
 
 def create_db():
@@ -73,4 +74,121 @@ def create_db():
     )
 
     conn.commit()
+    conn.close()
+
+
+def insert_manifest_data(manifest: Manifest, db_path: str = "dbt_manifest.db"):
+    conn = sqlite3.connect(db_path)
+    c = conn.cursor()
+
+    try:
+        c.execute(
+            "INSERT OR REPLACE INTO project (project_name) VALUES (?)",
+            (manifest.metadata.project_name,),
+        )
+
+        for node_id, node in manifest.nodes.items():
+            c.execute(
+                """
+                INSERT OR REPLACE INTO node (id, name, resource_type, project_name)
+                VALUES (?, ?, ?, ?)
+            """,
+                (
+                    node_id,
+                    node.name,
+                    node.resource_type,
+                    manifest.metadata.project_name,
+                ),
+            )
+
+            c.execute(
+                """
+                INSERT OR REPLACE INTO config
+                (node_id, enabled, materialized, incremental_strategy,
+                on_schema_change, on_configuration_change, severity)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+                (
+                    node_id,
+                    node.configuration.enabled,
+                    node.configuration.materialized,
+                    node.configuration.incremental_strategy,
+                    node.configuration.on_schema_change,
+                    node.configuration.on_configuration_change,
+                    node.configuration.severity,
+                ),
+            )
+
+            for col_name, col in node.columns.items():
+                c.execute(
+                    """
+                    INSERT OR REPLACE INTO node_columns (node_id, column_name, data_type)
+                    VALUES (?, ?, ?)
+                """,
+                    (node_id, col_name, col.data_type),
+                )
+
+            for ref in node.refs:
+                c.execute(
+                    """
+                    INSERT OR REPLACE INTO node_references (node_id, reference)
+                    VALUES (?, ?)
+                """,
+                    (node_id, ref.name),
+                )
+
+            for schema, table in node.sources:
+                c.execute(
+                    """
+                    INSERT OR REPLACE INTO node_sources (node_id, source_schema, source_table)
+                    VALUES (?, ?, ?)
+                """,
+                    (node_id, schema, table),
+                )
+
+            for dep in node.dependencies.nodes:
+                c.execute(
+                    """
+                    INSERT OR REPLACE INTO dependencies (node_id, dependency)
+                    VALUES (?, ?)
+                """,
+                    (node_id, dep),
+                )
+
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        print(f"Error inserting data: {e}")
+    finally:
+        conn.close()
+
+
+def query_db():
+    conn = sqlite3.connect("dbt_manifest.db")
+    c = conn.cursor()
+
+    # List all tables
+    c.execute("SELECT name FROM sqlite_master WHERE type='table';")
+    tables = c.fetchall()
+    print("Tables in the database:")
+    for table in tables:
+        print(f"- {table[0]}")
+    print()
+
+    # Query each table
+    for table in tables:
+        table_name = table[0]
+        print(f"Contents of {table_name}:")
+        c.execute(f"SELECT * FROM {table_name} LIMIT 5;")
+        rows = c.fetchall()
+        if rows:
+            # Get column names
+            column_names = [description[0] for description in c.description]
+            print("  Columns:", ", ".join(column_names))
+            for row in rows:
+                print("  ", row)
+        else:
+            print("  (Table is empty)")
+        print()
+
     conn.close()
