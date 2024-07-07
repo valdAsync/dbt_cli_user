@@ -1,4 +1,4 @@
-from database.db import create_db, insert_manifest_data, query_db
+from dbt_projects_db.db import create_db, insert_manifest_data, query_db
 
 __all__ = [
     "create_db",

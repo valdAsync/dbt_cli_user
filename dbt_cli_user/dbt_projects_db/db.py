@@ -164,32 +164,56 @@ def insert_manifest_data(manifest: Manifest, db_path: str = "dbt_manifest.db"):
         conn.close()
 
 
-def query_db():
-    conn = sqlite3.connect("dbt_manifest.db")
+# def query_db():
+#     conn = sqlite3.connect("dbt_manifest.db")
+#     c = conn.cursor()
+
+#     # List all tables
+#     c.execute("SELECT name FROM sqlite_master WHERE type='table';")
+#     tables = c.fetchall()
+#     print("Tables in the database:")
+#     for table in tables:
+#         print(f"- {table[0]}")
+#     print()
+
+#     # Query each table
+#     for table in tables:
+#         table_name = table[0]
+#         print(f"Contents of {table_name}:")
+#         c.execute(f"SELECT * FROM {table_name} LIMIT 5;")
+#         rows = c.fetchall()
+#         if rows:
+#             # Get column names
+#             column_names = [description[0] for description in c.description]
+#             print("  Columns:", ", ".join(column_names))
+#             for row in rows:
+#                 print("  ", row)
+#         else:
+#             print("  (Table is empty)")
+#         print()
+
+#     conn.close()
+
+
+def query_db(dbt_project_name: str, db_path: str = "dbt_manifest.db"):
+    conn = sqlite3.connect(db_path)
     c = conn.cursor()
 
-    # List all tables
-    c.execute("SELECT name FROM sqlite_master WHERE type='table';")
-    tables = c.fetchall()
-    print("Tables in the database:")
-    for table in tables:
-        print(f"- {table[0]}")
-    print()
+    try:
+        c.execute(
+            """
+            SELECT id, name, resource_type
+            FROM node
+            WHERE project_name = ?
+        """,
+            (dbt_project_name,),
+        )
 
-    # Query each table
-    for table in tables:
-        table_name = table[0]
-        print(f"Contents of {table_name}:")
-        c.execute(f"SELECT * FROM {table_name} LIMIT 5;")
-        rows = c.fetchall()
-        if rows:
-            # Get column names
-            column_names = [description[0] for description in c.description]
-            print("  Columns:", ", ".join(column_names))
-            for row in rows:
-                print("  ", row)
-        else:
-            print("  (Table is empty)")
-        print()
+        results = c.fetchall()
+        for row in results:
+            print(f"Node ID: {row[0]}, Name: {row[1]}, Type: {row[2]}")
 
-    conn.close()
+    except Exception as e:
+        print(f"Error querying database: {e}")
+    finally:
+        conn.close()
