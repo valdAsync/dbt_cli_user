@@ -4,26 +4,12 @@ from pathlib import Path
 from typing import Dict
 
 import typer
+from config_manager import load_config, save_config
 from dbt_parser import load_manifest
 from dbt_projects_db import create_db, insert_manifest_data, query_db
 from file_watcher import ProjectWatcher, start_watcher
 
 app = typer.Typer()
-
-CONFIG_FILE = Path.home() / "config.json"
-
-
-def load_config() -> Dict:
-    if CONFIG_FILE.exists():
-        with open(CONFIG_FILE, "r") as f:
-            return json.load(f)
-    else:
-        return {"projects": {}}
-
-
-def save_config(config: Dict):
-    with open(CONFIG_FILE, "w") as f:
-        json.dump(config, f, indent=2)
 
 
 def update_project(config: Dict, project_name: str):
