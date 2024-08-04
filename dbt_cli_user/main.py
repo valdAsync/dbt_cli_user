@@ -6,6 +6,7 @@ from typing import Dict
 import typer
 from dbt_parser import load_manifest
 from dbt_projects_db import create_db, insert_manifest_data, query_db
+from file_watcher import ProjectWatcher, start_watcher
 
 app = typer.Typer()
 
@@ -55,24 +56,30 @@ def show_menu():
 def main():
     config = load_config()
     create_db()
+    watcher = start_watcher(config)
 
-    while True:
-        show_menu()
-        choice = typer.prompt("Enter your choice", type=int)
+    try:
+        while True:
+            show_menu()
+            choice = typer.prompt("Enter your choice", type=int)
 
-        if choice == 1:
-            list_projects(config)
-        elif choice == 2:
-            add_project(config)
-        elif choice == 3:
-            remove_project(config)
-        elif choice == 4:
-            preview_project(config)
-        elif choice == 5:
-            typer.echo("Goodbye!")
-            break
-        else:
-            typer.echo("Invalid choice")
+            if choice == 1:
+                list_projects(config)
+            elif choice == 2:
+                add_project(config, watcher)
+            elif choice == 3:
+                remove_project(config, watcher)
+            elif choice == 4:
+                preview_project(config)
+            elif choice == 5:
+                typer.echo("Goodbye!")
+                break
+            else:
+                typer.echo("Invalid choice")
+    except KeyboardInterrupt:
+        typer.echo("Shutting down!")
+    finally:
+        watcher.stop()
 
 
 def list_projects(config: Dict):
@@ -83,7 +90,7 @@ def list_projects(config: Dict):
             typer.echo(project)
 
 
-def add_project(config: Dict):
+def add_project(config: Dict, watcher: ProjectWatcher):
     project_name = typer.prompt("Enter project name")
     project_path = typer.prompt("Enter project path")
 
@@ -104,17 +111,18 @@ def add_project(config: Dict):
             "dbt_project_name": dbt_project_name,
         }
         save_config(config)
+        watcher.add_project(project_name, config["projects"][project_name])
         typer.echo(f"Project '{project_name}' added successfully.")
-
         insert_manifest_data(manifest)
     except Exception as e:
         typer.echo(f"Error adding project: {e}")
 
 
-def remove_project(config: Dict):
+def remove_project(config: Dict, watcher: ProjectWatcher):
     project_name = typer.prompt("Enter project name")
 
     if project_name in config["projects"]:
+        watcher.remove_project(project_name)
         del config["projects"][project_name]
         save_config(config)
         typer.echo("Project removed.")
