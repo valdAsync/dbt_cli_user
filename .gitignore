@@ -1,8 +1,2 @@
-dbt_cli_user/__pycache__/
 dbt_manifest.db
-dbt_cli_user/dbt_parser/__pycache__/
-dbt_cli_user/dbt_parser/__pycache__/
-dbt_cli_user/dbt_projects_db/__pycache__/
-dbt_cli_user/dbt_projects_db/__pycache__/
-dbt_cli_user/file_watcher/__pycache__/
-dbt_cli_user/file_watcher/__pycache__/
+__pycache__/
